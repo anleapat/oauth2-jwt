@@ -1,0 +1,22 @@
+{
+  "username": "any username",
+ "password" : "any password"
+}
+
+
+{
+"table" : "products",
+
+"records" : [
+	{
+	"entry_date": "03-01-2023",
+	"itemcode": "11111",
+	"itemname": "Test Inventory 1",
+	"itemquantity": "20"
+	},
+	{
+		"entry_date": "03-01-2023",
+		"itemcode": "22222",
+		"itemname": "Test Inventory 2",
+		"itemquantity": "20"
+	}] }
