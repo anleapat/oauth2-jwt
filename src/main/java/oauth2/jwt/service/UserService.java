@@ -4,6 +4,7 @@ import oauth2.jwt.dao.UserInfoRepository;
 import oauth2.jwt.dto.UserInfo;
 import oauth2.jwt.dto.UserInfoDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +22,7 @@ public class UserService implements UserDetailsService {
     private PasswordEncoder encoder;
 
     @Override
-    public org.springframework.security.core.userdetails.UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
         Optional<UserInfo> userDetail = repository.findByUsername(username);
 
