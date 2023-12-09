@@ -9,19 +9,17 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import oauth2.jwt.utils.CookieUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 // This class helps us to validate the generated jwt token
@@ -39,16 +37,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
+        String authHeader = request.getHeader(SsoConstant.AUTHORIZATION);
         String token = null;
         String username = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader == null) {
+            authHeader = CookieUtils.getCookie(request, SsoConstant.AUTHORIZATION);
+        }
+        if (authHeader != null && authHeader.startsWith(SsoConstant.BEARER_PREFIX)) {
             token = authHeader.substring(7);
             username = jwtService.extractUsername(token);
         }
-
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            String key = "session:user:sso:"+username;
+            String key = SsoConstant.SSO_CONST + username;
             UserInfo userInfo = (UserInfo) redisTemplate.boundValueOps(key).get();
             assert userInfo != null;
             UserInfoDetails userDetails = new UserInfoDetails(userInfo);
@@ -65,11 +65,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // less than 1 minute
                 if (expireDate.getTime() - System.currentTimeMillis() < 60*1000) {
                     token = jwtService.generateToken(username);
-                    authHeader = "Bearer " + token;
-                    redisTemplate.expire(key, SsoConstant.expireTime, TimeUnit.MINUTES);
+                    authHeader = SsoConstant.BEARER_PREFIX + token;
+                    redisTemplate.expire(key, SsoConstant.EXPIRE_TIME, TimeUnit.MINUTES);
                 }
-
-                response.setHeader("Authorization", authHeader);
+                response.setHeader(SsoConstant.AUTHORIZATION, authHeader);
+                CookieUtils.setCookie(response, SsoConstant.AUTHORIZATION, authHeader, SsoConstant.EXPIRE_TIME*1000*60, null);
             }
         }
         filterChain.doFilter(request, response);
