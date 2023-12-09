@@ -40,12 +40,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader(SsoConstant.AUTHORIZATION);
         String token = null;
         String username = null;
+        boolean isFromCookie = false;
         if (authHeader == null) {
             authHeader = CookieUtils.getCookie(request, SsoConstant.AUTHORIZATION);
+            isFromCookie = true;
         }
         if (authHeader != null && authHeader.startsWith(SsoConstant.BEARER_PREFIX)) {
             token = authHeader.substring(7);
-            username = jwtService.extractUsername(token);
+            if (isFromCookie) {
+                try {
+                    jwtService.isTokenExpired(token);
+                    username = jwtService.extractUsername(token);
+                } catch (Exception ex) {
+                    authHeader = null;
+                }
+            } else {
+                username = jwtService.extractUsername(token);
+            }
         }
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             String key = SsoConstant.SSO_CONST + username;
